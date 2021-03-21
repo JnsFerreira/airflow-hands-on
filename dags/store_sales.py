@@ -1,6 +1,8 @@
 from airflow import DAG
 from datetime import datetime, timedelta
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.python_operator import PythonOperator
+from helpers.datacleaner import data_cleaner
 
 default_args = {
     'owner': 'Airflow',
@@ -16,10 +18,15 @@ with DAG(
     catchup=False) as dag:
 
     check_if_file_exists = BashOperator(
-        task_id = "check_if_file_exists",
-        bash_command="shasum ~/store_files_airflow/raw_store_transactions.csv",
+        task_id = 'check_if_file_exists',
+        bash_command='shasum ~/store_files_airflow/raw_store_transactions.csv',
         retries=2,
         retry_dalay=timedelta(seconds=5)
     )
 
-    check_if_file_exists
+    clean_raw_csv = PythonOperator(
+        task_id='clean_raw_csv',
+        python_callable=data_cleaner,
+    )
+
+    check_if_file_exists >> clean_raw_csv
